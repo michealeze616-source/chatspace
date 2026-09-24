@@ -4,11 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ChatSpace</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#128C7E">
-<link rel="apple-touch-icon" href="icon.svg">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
@@ -28,11 +24,9 @@
   .avatar-picker { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-bottom:18px; }
   .avatar-option { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.3rem; cursor:pointer; border:3px solid transparent; }
   .avatar-option.selected { border-color:#fff; }
-  #username-input, #email-input, #password-input, #newchat-input, #groupname-input, #groupmembers-input, #search-input, #chatsearch-input, #profilename-input, #status-text-input { width:100%; padding:14px; border-radius:10px; border:none; font-size:1rem; margin-bottom:12px; }
+  #username-input, #newchat-input, #groupname-input, #groupmembers-input, #search-input, #chatsearch-input, #profilename-input, #status-text-input { width:100%; padding:14px; border-radius:10px; border:none; font-size:1rem; margin-bottom:12px; }
   #username-input { text-align:center; }
-  .auth-btn-row { display:flex; gap:10px; width:100%; }
-  #login-btn, #signup-btn, #newchat-confirm, #groupchat-confirm, #profilesave-btn, #status-post-btn { flex:1; width:100%; padding:14px; border-radius:10px; border:none; background:#25D366; color:#fff; font-size:1rem; font-weight:bold; cursor:pointer; }
-  #login-btn { background: #128C7E; }
+  #join-btn, #newchat-confirm, #groupchat-confirm, #profilesave-btn, #status-post-btn { width:100%; padding:14px; border-radius:10px; border:none; background:#25D366; color:#fff; font-size:1rem; font-weight:bold; cursor:pointer; }
 
   #list-screen { display:none; flex-direction:column; height:100%; }
   #list-header { background:#1f2c34; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; }
@@ -179,15 +173,10 @@
 
   <div id="login-screen">
     <h1>💬 ChatSpace</h1>
-    <p>Sign up or log in with your email</p>
+    <p>Pick an avatar and choose a username</p>
     <div class="avatar-picker" id="avatar-picker"></div>
-    <input type="text" id="username-input" placeholder="Your display name" maxlength="20">
-    <input type="email" id="email-input" placeholder="Email address">
-    <input type="password" id="password-input" placeholder="Password">
-    <div class="auth-btn-row">
-      <button id="login-btn">Log In</button>
-      <button id="signup-btn">Sign Up</button>
-    </div>
+    <input type="text" id="username-input" placeholder="Your name" maxlength="20">
+    <button id="join-btn">Join Chat</button>
   </div>
 
   <div id="list-screen">
@@ -196,7 +185,7 @@
         <div id="my-avatar-btn"></div>
         <h2>Chats</h2>
       </div>
-      <div id="header-icons"><span id="theme-toggle" title="Theme">🌓</span><span id="logout-icon" title="Log Out" style="font-size:1rem; cursor:pointer;">🚪</span><span id="menu-icon" title="Refresh">⟳</span></div>
+      <div id="header-icons"><span id="theme-toggle" title="Theme">🌓</span><span id="menu-icon" title="Refresh">⟳</span></div>
     </div>
     <div class="main-tabs">
       <div class="main-tab-btn active" id="tabbtn-chats">Chats</div>
@@ -283,8 +272,8 @@
     <div id="input-bar">
       <span id="attach-btn" title="Send photo/video">📎</span>
       <span id="viewonce-btn" title="View once">1️⃣</span>
-      <input type="text" id="message-input" placeholder="Type a message...">
-      <span id="mic-btn" title="Hold to record">🎤</span>
+      <input type="text" id="message-input" placeholder="Type a message.
+       <span id="mic-btn" title="Hold to record">🎤</span>
       <button id="send-btn">➤</button>
     </div>
     <input type="file" id="image-input" accept="image/*,video/*" style="display:none">
@@ -320,7 +309,6 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const auth = firebase.auth();
 
 const AVATAR_COLORS = ['#25D366','#128C7E','#075E54','#34B7F1','#ED7B7B','#F5A623','#9B59B6','#3498DB'];
 const AVATAR_EMOJIS = ['😀','😎','🐱','🐶','🦊','🐼','🌟','🔥','🎨','🚀'];
@@ -356,8 +344,7 @@ const RTC_CONFIG = { iceServers: [{ urls: ['stun:stun.l.google.com:19302','stun:
 const $ = id => document.getElementById(id);
 const loginScreen = $('login-screen'), listScreen = $('list-screen'), chatScreen = $('chat-screen'), appEl = $('app');
 const avatarPicker = $('avatar-picker'), profileAvatarPicker = $('profile-avatar-picker');
-const usernameInput = $('username-input'), emailInput = $('email-input'), passwordInput = $('password-input');
-const loginBtn = $('login-btn'), signupBtn = $('signup-btn'), logoutIcon = $('logout-icon');
+const usernameInput = $('username-input'), joinBtn = $('join-btn');
 const chatListEl = $('chat-list'), searchInput = $('search-input'), fab = $('fab');
 const newChatOverlay = $('newchat-overlay'), newChatInput = $('newchat-input'), newChatConfirm = $('newchat-confirm'), newChatCancel = $('newchat-cancel');
 const tabDirect = $('tab-direct'), tabGroup = $('tab-group'), directPanel = $('direct-panel'), groupPanel = $('group-panel');
@@ -411,7 +398,7 @@ STATUS_BG_COLORS.forEach((color, i) => {
 });
 
 function escapeHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
-function uid(name) { return name ? name.trim().toLowerCase() : ''; }
+function uid(name) { return name.trim().toLowerCase(); }
 function showToast(msg) { toastEl.textContent = msg; toastEl.style.display = 'block'; setTimeout(() => toastEl.style.display = 'none', 1800); }
 function timeAgo(date) { const diff = Math.floor((Date.now() - date.getTime()) / 60000); if (diff < 1) return 'just now'; if (diff < 60) return diff + 'm ago'; const hrs = Math.floor(diff / 60); if (hrs < 24) return hrs + 'h ago'; return Math.floor(hrs/24) + 'd ago'; }
 function beep() { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = 700; g.gain.value = 0.05; o.start(); setTimeout(() => { o.stop(); ctx.close(); }, 120); } catch(e) {} }
@@ -438,91 +425,22 @@ navChats.onclick = () => switchMainTab('chats');
 navStatus.onclick = () => switchMainTab('status');
 navCalls.onclick = () => switchMainTab('calls');
 
-/* FIREBASE AUTH LISTENERS */
-signupBtn.onclick = handleSignUp;
-loginBtn.onclick = handleLogIn;
-logoutIcon.onclick = () => auth.signOut();
-
-async function handleSignUp() {
+joinBtn.onclick = joinChat;
+usernameInput.addEventListener('keypress', e => { if (e.key === 'Enter') joinChat(); });
+async function joinChat() {
   const name = usernameInput.value.trim();
-  const email = emailInput.value.trim();
-  const password = passwordInput.value.trim();
-  if (!name || !email || !password) { showToast('Please fill out all fields'); return; }
-
-  try {
-    const cred = await auth.createUserWithEmailAndPassword(email, password);
-    username = name;
-    await db.collection('users').doc(uid(username)).set({
-      uid: cred.user.uid,
-      displayName: username,
-      avatarColor: selectedAvatar.color,
-      avatarEmoji: selectedAvatar.emoji,
-      online: true,
-      lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-    showToast('Account created!');
-  } catch (err) {
-    showToast(err.message);
-  }
+  if (!name) return;
+  username = name;
+  pinnedChats = JSON.parse(localStorage.getItem('pinned_' + uid(username)) || '[]');
+  mutedChats = JSON.parse(localStorage.getItem('muted_' + uid(username)) || '[]');
+  hiddenChats = JSON.parse(localStorage.getItem('hidden_' + uid(username)) || '[]');
+  await db.collection('users').doc(uid(username)).set({ displayName: username, avatarColor: selectedAvatar.color, avatarEmoji: selectedAvatar.emoji, online: true, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  profileCache[uid(username)] = { displayName: username, avatarColor: selectedAvatar.color, avatarEmoji: selectedAvatar.emoji, online: true };
+  myAvatarBtn.textContent = selectedAvatar.emoji; myAvatarBtn.style.background = selectedAvatar.color;
+  myStatusAvatar.textContent = selectedAvatar.emoji; myStatusAvatar.style.background = selectedAvatar.color;
+  loginScreen.style.display = 'none'; listScreen.style.display = 'flex';
+  listenToChatList(); listenForIncomingCalls();
 }
-
-async function handleLogIn() {
-  const email = emailInput.value.trim();
-  const password = passwordInput.value.trim();
-  if (!email || !password) { showToast('Enter email and password'); return; }
-
-  try {
-    await auth.signInWithEmailAndPassword(email, password);
-  } catch (err) {
-    showToast(err.message);
-  }
-}
-
-auth.onAuthStateChanged(async (user) => {
-  if (user) {
-    // User is signed in, find or fetch their username profile
-    const snapshot = await db.collection('users').where('uid', '==', user.uid).get();
-    if (!snapshot.empty) {
-      const data = snapshot.docs[0].data();
-      username = data.displayName;
-      selectedAvatar = { color: data.avatarColor || AVATAR_COLORS[0], emoji: data.avatarEmoji || AVATAR_EMOJIS[0] };
-    } else if (usernameInput.value.trim()) {
-      username = usernameInput.value.trim();
-      await db.collection('users').doc(uid(username)).set({
-        uid: user.uid,
-        displayName: username,
-        avatarColor: selectedAvatar.color,
-        avatarEmoji: selectedAvatar.emoji,
-        online: true
-      }, { merge: true });
-    } else {
-      username = user.email.split('@')[0];
-    }
-
-    pinnedChats = JSON.parse(localStorage.getItem('pinned_' + uid(username)) || '[]');
-    mutedChats = JSON.parse(localStorage.getItem('muted_' + uid(username)) || '[]');
-    hiddenChats = JSON.parse(localStorage.getItem('hidden_' + uid(username)) || '[]');
-
-    await db.collection('users').doc(uid(username)).set({ online: true, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
-    
-    myAvatarBtn.textContent = selectedAvatar.emoji; 
-    myAvatarBtn.style.background = selectedAvatar.color;
-    myStatusAvatar.textContent = selectedAvatar.emoji; 
-    myStatusAvatar.style.background = selectedAvatar.color;
-
-    loginScreen.style.display = 'none'; 
-    listScreen.style.display = 'flex';
-    listenToChatList(); 
-    listenForIncomingCalls();
-  } else {
-    loginScreen.style.display = 'flex';
-    listScreen.style.display = 'none';
-    chatScreen.style.display = 'none';
-    if (unsubChatList) unsubChatList();
-    if (unsubIncomingCalls) unsubIncomingCalls();
-  }
-});
-
 async function getProfile(name) {
   const id = uid(name);
   const doc = await db.collection('users').doc(id).get();
@@ -587,7 +505,7 @@ async function renderChatList() {
     const item = document.createElement('div');
     item.className = 'chat-item' + (muted ? ' muted' : '');
     item.innerHTML = `<div class="avatar" style="background:${color}">${emoji}${online ? '<span class="online-dot"></span>' : ''}</div><div class="info"><div class="row1"><h3>${pinned ? '📌 ' : ''}${escapeHtml(name)}${muted ? ' 🔕' : ''}</h3><span class="time">${timeStr}</span></div><div class="row2"><p>${escapeHtml(chat.lastMessageText || 'Tap to open chat')}</p>${unread > 0 && !muted ? `<div class="unread-badge">${unread}</div>` : ''}</div></div>`;
-    item.onclick = () => openChat(chat.id, chat.type, chat.members, name, emoji, color);
+   item.onclick = () => openChat(chat.id, chat.type, chat.members, name, emoji, color);
     let pressTimer;
     const startPress = ev => { pressTimer = setTimeout(() => showChatItemMenu(ev, chat.id), 500); };
     const endPress = () => clearTimeout(pressTimer);
@@ -606,7 +524,8 @@ function showChatItemMenu(ev, chatId) {
   menu.style.left = (rect.left + 40) + 'px';
   menu.style.top = Math.min(window.innerHeight - 160, (ev.touches ? ev.touches[0].clientY : ev.clientY)) + 'px';
   $('cm-pin').onclick = () => { togglePin(chatId); closeContextMenus(); };
-  $('cm-mute').onclick = () => { toggleMute(chatId); closeContextMenus(); };$('cm-delete').onclick = () => { deleteChat(chatId); closeContextMenus(); };
+  $('cm-mute').onclick = () => { toggleMute(chatId); closeContextMenus(); };
+  $('cm-delete').onclick = () => { deleteChat(chatId); closeContextMenus(); };
 }
 function togglePin(chatId) { pinnedChats = pinnedChats.includes(chatId) ? pinnedChats.filter(id => id !== chatId) : [...pinnedChats, chatId]; localStorage.setItem('pinned_' + uid(username), JSON.stringify(pinnedChats)); showToast(pinnedChats.includes(chatId) ? 'Pinned' : 'Unpinned'); renderChatList(); }
 function toggleMute(chatId) { mutedChats = mutedChats.includes(chatId) ? mutedChats.filter(id => id !== chatId) : [...mutedChats, chatId]; localStorage.setItem('muted_' + uid(username), JSON.stringify(mutedChats)); showToast(mutedChats.includes(chatId) ? 'Muted' : 'Unmuted'); renderChatList(); }
@@ -685,6 +604,7 @@ muteIcon.onclick = () => toggleMute(currentChatId);
 chatsearchIcon.onclick = () => { chatsearchBar.style.display = chatsearchBar.style.display === 'block' ? 'none' : 'block'; chatsearchInput.value=''; chatsearchInput.focus(); };
 chatsearchInput.addEventListener('input', () => { const q = chatsearchInput.value.trim().toLowerCase(); document.querySelectorAll('.msg').forEach(el => { const match = q && el.textContent.toLowerCase().includes(q); el.style.outline = match ? '2px solid #25D366' : 'none'; }); });
 
+/* MESSAGE RENDER (with view-once) */
 async function renderMessage(msgId, m) {
   const isSent = uid(m.sender) === uid(username);
   const msg = document.createElement('div');
@@ -703,7 +623,7 @@ async function renderMessage(msgId, m) {
     bodyHtml = '<i style="opacity:0.6;">Message deleted</i>';
   } else if (isMedia && m.viewOnce) {
     if (m.opened) {
-      bodyHtml = `<div class="viewonce-lock" style="opacity:0.6;"><span class="vo-icon">1️⃣</span>Opened</div>`;
+      bodyHtml = `<div class="viewonce-lock" style="opacity:0.6;"><span class="vo-icon">1️⃣</span>${isSent ? 'Opened' : 'Opened'}</div>`;
     } else if (isSent) {
       bodyHtml = m.type === 'image' ? `<img src="${m.mediaData}">` : `<video controls src="${m.mediaData}"></video>`;
       bodyHtml += `<div style="font-size:0.7rem;opacity:0.7;margin-top:2px;">1️⃣ View once</div>`;
@@ -770,7 +690,8 @@ function showMessageMenu(ev, msgId, m, isSent) {
   menu.innerHTML = `<div id="cm-reply">↩ Reply</div>${isSent ? '<div id="cm-edit">✏ Edit</div>' : ''}<div id="cm-delete" style="color:#ED7B7B;">🗑 Delete</div>`;
   document.body.appendChild(menu);
   $('cm-reply').onclick = () => { setReply(msgId, m); closeContextMenus(); };
-  if (isSent) $('cm-edit').onclick = () => { editMessage(msgId, m); closeContextMenus(); };$('cm-delete').onclick = () => { deleteMessage(msgId); closeContextMenus(); };
+  if (isSent) $('cm-edit').onclick = () => { editMessage(msgId, m); closeContextMenus(); };
+  $('cm-delete').onclick = () => { deleteMessage(msgId); closeContextMenus(); };
 }
 function react(msgId, emoji) { db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).update({ ['reactions.' + uid(username)]: emoji }).catch(()=>{}); }
 function setReply(msgId, m) { replyTarget = { id: msgId, sender: m.sender, text: m.type === 'text' ? m.text : ('[' + m.type + ']') }; replyPreviewText.textContent = 'Replying to ' + m.sender + ': ' + (m.type === 'text' ? m.text.slice(0,40) : '['+m.type+']'); replyPreview.style.display = 'flex'; messageInput.focus(); }
@@ -793,8 +714,11 @@ async function pushMessage(extra) {
   db.collection('chats').doc(currentChatId).update({ ['typingFor.' + uid(username)]: false }).catch(()=>{});
 }
 
-viewOnceBtn.onclick = () => { viewOnceMode = !viewOnceMode; viewOnceBtn.classList.toggle('active', viewOnceMode); showToast(viewOnceMode ? 'Next photo/video will be view once' : 'View once turned off'); };
+/* VIEW ONCE TOGGLE */
+viewOnceBtn.onclick = () => { viewOnceMode
+                             = !viewOnceMode; viewOnceBtn.classList.toggle('active', viewOnceMode); showToast(viewOnceMode ? 'Next photo/video will be view once' : 'View once turned off'); };
 
+/* IMAGE + VIDEO SEND */
 attachBtn.onclick = () => imageInput.click();
 imageInput.addEventListener('change', () => {
   const file = imageInput.files[0];
@@ -830,6 +754,7 @@ imageInput.addEventListener('change', () => {
   imageInput.value = '';
 });
 
+/* VOICE NOTES */
 async function startRecording() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { showToast('Mic not supported here'); return; }
   try {
@@ -852,6 +777,7 @@ micBtn.addEventListener('touchend', stopRecording);
 micBtn.addEventListener('mousedown', startRecording);
 micBtn.addEventListener('mouseup', stopRecording);
 
+/* STATUS */
 statusTabText.onclick = () => { statusTabText.classList.add('active'); statusTabPhoto.classList.remove('active'); statusTextPanel.style.display='block'; statusPhotoPanel.style.display='none'; };
 statusTabPhoto.onclick = () => { statusTabPhoto.classList.add('active'); statusTabText.classList.remove('active'); statusPhotoPanel.style.display='block'; statusTextPanel.style.display='none'; };
 myStatusRow.onclick = () => { newStatusOverlay.style.display = 'flex'; statusTextInput.value=''; statusImageInput.value=''; };
@@ -922,6 +848,7 @@ statusNavPrev.onclick = () => { if (viewerIndex > 0) { viewerIndex--; showStatus
 statusViewerClose.onclick = closeStatusViewer;
 function closeStatusViewer() { statusViewer.style.display = 'none'; renderStatusList(); }
 
+/* CALLS */
 async function renderCallLog() {
   const snapshot = await db.collection('calls').where('participants', 'array-contains', uid(username)).orderBy('startedAt', 'desc').limit(30).get();
   if (snapshot.empty) { callsListEl.innerHTML = '<div id="empty-calls">No call history yet</div>'; return; }
@@ -990,7 +917,7 @@ async function acceptCall(callId, data) {
   unsubCallerCandidates = callerCandidatesCol.onSnapshot(snap => { snap.docChanges().forEach(change => { if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); }); });
 }
 function declineCall(callId) { incomingCallOverlay.style.display = 'none'; db.collection('calls').doc(callId).update({ status: 'declined' }).catch(()=>{}); currentCallId = null; }
-function endCall(remote) {
+ function endCall(remote) {
   if (currentCallId && !remote) db.collection('calls').doc(currentCallId).update({ status: 'ended' }).catch(()=>{});
   if (currentCallId) { db.collection('calls').doc(currentCallId).get().then(doc => { const d = doc.data(); if (d) { const chatMembersSorted = [d.caller, d.callee].sort(); const chatId = 'direct__' + chatMembersSorted.join('__'); db.collection('chats').doc(chatId).collection('messages').add({ type: 'call-log', sender: uid(username), text: 'Voice call', timestamp: firebase.firestore.FieldValue.serverTimestamp() }).catch(()=>{}); } }); }
   if (pc) { pc.close(); pc = null; }
@@ -1006,9 +933,6 @@ endCallBtn.onclick = () => endCall(false);
 muteCallBtn.onclick = () => { if (!localStream) return; micMuted = !micMuted; localStream.getAudioTracks().forEach(t => t.enabled = !micMuted); muteCallBtn.classList.toggle('active', micMuted); };
 
 window.addEventListener('beforeunload', () => { if (username) db.collection('users').doc(uid(username)).update({ online: false, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }).catch(()=>{}); if (currentCallId) db.collection('calls').doc(currentCallId).update({ status: 'ended' }).catch(()=>{}); });
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
-}
 </script>
 
 </body>
